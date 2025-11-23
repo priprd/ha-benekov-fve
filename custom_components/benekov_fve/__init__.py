@@ -1,33 +1,29 @@
-import asyncio
-import logging
-
-from homeassistant.config_entries import ConfigEntry
+"""The Benekov FVE Monitor integration."""
 from homeassistant.core import HomeAssistant
+from homeassistant.config_entries import ConfigEntry
 
-_LOGGER = logging.getLogger(__name__)
-
-DOMAIN = "benekov_fve"
-PLATFORMS = ["sensor"]
-
+# Tato funkce je volána, když je integrace spuštěna z konfiguračního toku.
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
-    """Set up Energy Monitor from a config entry."""
+    """Set up Benekov FVE Monitor from a config entry."""
+    # V této fázi obvykle uložíte data z config_entry do 'data' a načtete platformy (např. 'sensor').
     
-    # Store the API configuration in the HA data dictionary
-    hass.data.setdefault(DOMAIN, {})[entry.entry_id] = entry.data
+    # Uložení dat pro pozdější použití (např. v sensor.py)
+    hass.data.setdefault("benekov_fve", {})
+    hass.data["benekov_fve"][entry.entry_id] = entry.data
 
-    # Forward the setup to the sensor platform (which creates the entities)
-    await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
-
-    _LOGGER.debug("Energy Monitor integration setup complete.")
+    # Načtení platformy 'sensor'.
+    await hass.config_entries.async_forward_entry_setup(entry, "sensor")
+    
     return True
 
+# Tato funkce je volána, když je integrace odebrána.
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Unload a config entry."""
-    # Unload the sensor platform
-    unload_ok = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
+    # Odstranění platformy 'sensor'.
+    unload_ok = await hass.config_entries.async_forward_entry_unload(entry, "sensor")
     
-    # Remove the data stored for this config entry
     if unload_ok:
-        hass.data[DOMAIN].pop(entry.entry_id)
+        # Vyčištění dat
+        hass.data["benekov_fve"].pop(entry.entry_id)
 
     return unload_ok
