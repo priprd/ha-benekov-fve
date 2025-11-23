@@ -1,0 +1,11 @@
+{
+  "domain": "benekov_fve",
+  "name": "Benekov FVE Monitor",
+  "documentation": "https://github.com/priprd/ha-benekov-fve",
+  "issue_tracker": "https://github.com/priprd/ha-benekov-fve/issues",
+  "dependencies": [],
+  "codeowners": ["@priprd"],
+  "requirements": ["requests>=2.28.1"],
+  "version": "1.0.0",
+  "config_flow": true
+}
