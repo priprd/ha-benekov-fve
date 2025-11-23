@@ -6,11 +6,13 @@ import homeassistant.helpers.config_validation as cv
 from homeassistant.const import CONF_URL, CONF_USERNAME, CONF_PASSWORD
 
 # Import the base API class to test connectivity
+# NOTE: Ensure 'sensor' is the correct module name for your API class
 from .sensor import BenekovFVEAPI, DEFAULT_SCAN_INTERVAL
 
 import logging
 _LOGGER = logging.getLogger(__name__)
 
+# --- Data Schema for the Configuration Form ---
 DATA_SCHEMA = vol.Schema(
     {
         vol.Required(CONF_URL, description={"suggested_value": "http://your.monitor.api/data"}): cv.url,
@@ -21,10 +23,15 @@ DATA_SCHEMA = vol.Schema(
     }
 )
 
+# --- Configuration Flow Handler ---
 class BenekovFVEConfigFlow(config_entries.ConfigFlow, domain="benekov_fve"):
     """Handle a config flow for the Benekov FVE Monitor integration."""
 
+    # This MUST match the domain in your manifest.json
     VERSION = 1
+
+    # The flow handler is automatically identified by the directory/domain name,
+    # so we define the class without the domain=... argument.
 
     async def async_step_user(self, user_input=None):
         """Handle the initial step."""
@@ -34,16 +41,26 @@ class BenekovFVEConfigFlow(config_entries.ConfigFlow, domain="benekov_fve"):
             url = user_input[CONF_URL]
             c_monitor = user_input[CONF_USERNAME]
             t_monitor = user_input[CONF_PASSWORD]
-            scan_interval_s = user_input["scan_interval"]
+            # Use .get() in case the user input didn't contain the optional field (though it has a default)
+            scan_interval_s = user_input.get("scan_interval", DEFAULT_SCAN_INTERVAL.seconds)
 
             # Renamed API class
             api = BenekovFVEAPI(self.hass, url, c_monitor, t_monitor)
             
             # Test connectivity before saving
             try:
+                # Use hass.async_add_executor_job for blocking I/O (like standard HTTP requests)
                 info = await self.hass.async_add_executor_job(api.get_data)
-                if 'error' in info and info['error'] == "JSON_DECODE_FAILED":
-                    errors["base"] = "invalid_auth" # API returned gibberish or non-JSON
+                
+                # Check for an explicit API error response
+                if isinstance(info, dict) and 'error' in info:
+                    # Specific check for the API returning a JSON decode failure message
+                    if info['error'] == "JSON_DECODE_FAILED":
+                         errors["base"] = "invalid_auth" # Treat as an authentication/data error
+                    else:
+                         # Handle other specific API errors if known
+                         errors["base"] = "cannot_connect"
+                         _LOGGER.error("API returned error: %s", info['error'])
                 else:
                     # Success! Create the config entry
                     return self.async_create_entry(
@@ -55,8 +72,9 @@ class BenekovFVEConfigFlow(config_entries.ConfigFlow, domain="benekov_fve"):
                             "scan_interval": scan_interval_s,
                         },
                     )
-            except Exception:
-                errors["base"] = "cannot_connect" # Network or HTTP error
+            except Exception as e:
+                _LOGGER.exception("Failed to connect or retrieve data from Benekov FVE Monitor")
+                errors["base"] = "cannot_connect" # Network or general HTTP error
         
         # Show form if no input or errors occurred
         return self.async_show_form(
@@ -64,3 +82,10 @@ class BenekovFVEConfigFlow(config_entries.ConfigFlow, domain="benekov_fve"):
             data_schema=DATA_SCHEMA,
             errors=errors,
         )
+
+# --- Additional Handlers (If needed) ---
+# Home Assistant often requires a separate options flow if you want users to 
+# change settings like scan_interval after setup.
+# class BenekovFVEOptionsFlow(config_entries.OptionsFlow):
+#     # ... (Define your options flow here) ...
+#     pass
