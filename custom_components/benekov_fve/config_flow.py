@@ -7,7 +7,6 @@ from homeassistant.const import CONF_URL, CONF_USERNAME, CONF_PASSWORD
 
 # Import the base API class to test connectivity
 # NOTE: Ensure 'sensor' is the correct module name for your API class
-from .sensor import BenekovFVEAPI, DEFAULT_SCAN_INTERVAL
 from .const import DOMAIN
 import logging
 _LOGGER = logging.getLogger(__name__)
@@ -19,13 +18,20 @@ DATA_SCHEMA = vol.Schema(
         # Using CONF_USERNAME/CONF_PASSWORD for c_monitor/t_monitor storage
         vol.Required(CONF_USERNAME, description={"suggested_value": "Client ID (c_monitor)"}): cv.string,
         vol.Required(CONF_PASSWORD, description={"suggested_value": "Token (t_monitor)"}): cv.string,
-        vol.Optional("scan_interval", default=DEFAULT_SCAN_INTERVAL.seconds): cv.positive_int,
+        # Default scan interval in seconds (avoid importing sensor at module import time)
+        vol.Optional("scan_interval", default=5): cv.positive_int,
     }
 )
 
 # --- Configuration Flow Handler ---
-class BenekovFVEConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
-    """Handle a config flow for the Benekov FVE Monitor integration."""
+@config_entries.ConfigFlow.register(DOMAIN)
+class BenekovFVEConfigFlow(config_entries.ConfigFlow):
+    """Handle a config flow for the Benekov FVE Monitor integration.
+
+    Note: We avoid importing the `sensor` module at top-level to prevent
+    potential import-time errors inside Home Assistant. The API class is
+    imported lazily inside the flow handler.
+    """
 
     # This MUST match the domain in your manifest.json
     VERSION = 1
@@ -42,9 +48,11 @@ class BenekovFVEConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             c_monitor = user_input[CONF_USERNAME]
             t_monitor = user_input[CONF_PASSWORD]
             # Use .get() in case the user input didn't contain the optional field (though it has a default)
-            scan_interval_s = user_input.get("scan_interval", DEFAULT_SCAN_INTERVAL.seconds)
+            scan_interval_s = user_input.get("scan_interval", 5)
 
-            # Renamed API class
+            # Import API lazily to avoid import-time failures
+            from .sensor import BenekovFVEAPI
+
             api = BenekovFVEAPI(self.hass, url, c_monitor, t_monitor)
             
             # Test connectivity before saving
