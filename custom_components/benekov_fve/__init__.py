@@ -19,7 +19,11 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """
 
     hass.data.setdefault(DOMAIN, {})
-    hass.data[DOMAIN][entry.entry_id] = entry.data
+    # Store a mutable container per entry (don't store the MappingProxy `entry.data`
+    # directly because it's immutable). Keep the original data under the
+    # `config` key so other code can read it if needed.
+    hass.data[DOMAIN].setdefault(entry.entry_id, {})
+    hass.data[DOMAIN][entry.entry_id]["config"] = entry.data
 
     # Lazy import API to avoid import-time side effects
     try:

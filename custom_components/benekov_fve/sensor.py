@@ -155,6 +155,7 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry, asyn
 
     hass.data.setdefault(DOMAIN, {})
     hass.data[DOMAIN].setdefault(config_entry.entry_id, {})
+    # store coordinator in the mutable container for this entry
     hass.data[DOMAIN][config_entry.entry_id]["coordinator"] = coordinator
 
     # Create sensors for each metric
