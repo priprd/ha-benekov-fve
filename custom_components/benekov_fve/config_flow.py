@@ -8,8 +8,10 @@ from homeassistant.const import CONF_URL
 
 from .const import DOMAIN
 
-# Small schema to exercise the form UI without side effects
-DATA_SCHEMA = vol.Schema({vol.Required(CONF_URL): cv.url})
+# Small schema to exercise the form UI without side effects.
+# Use `cv.string` instead of `cv.url` to ensure HA can convert the
+# schema to a UI form without raising conversion errors.
+DATA_SCHEMA = vol.Schema({vol.Required(CONF_URL): cv.string})
 
 
 @config_entries.HANDLERS.register(DOMAIN)

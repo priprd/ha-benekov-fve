@@ -3,7 +3,6 @@ from homeassistant.core import HomeAssistant
 from homeassistant.config_entries import ConfigEntry
 from .const import DOMAIN, LOGGER
 
-
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up Benekov FVE Monitor from a config entry."""
 
@@ -15,14 +14,11 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     
     return True
 
-# Tato funkce je volána, když je integrace odebrána.
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Unload a config entry."""
-    # Odstranění platformy 'sensor'.
     unload_ok = await hass.config_entries.async_forward_entry_unload(entry, "sensor")
     
     if unload_ok:
-        # Vyčištění dat
         hass.data["benekov_fve"].pop(entry.entry_id)
 
     return unload_ok
