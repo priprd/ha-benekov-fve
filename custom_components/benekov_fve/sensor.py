@@ -50,12 +50,19 @@ class BenekovFVEAPI:
     def get_data(self):
         """Fetch and parse data synchronously (runs in HA executor)."""
         try:
-            # 1. Fetch data via POST request
-            response = requests.post(
-                self.url, 
-                data=self.payload, 
-                timeout=10, 
-                verify=True # Enable SSL verification
+            # 1. Fetch data via POST request. Be defensive: ensure `requests`
+            # module exposes `post` (guards against accidental typos like
+            # `request.posrt` in modified environments).
+            post_fn = getattr(requests, "post", None)
+            if post_fn is None:
+                _LOGGER.error("`requests.post` not available — requests module broken or misimported")
+                raise UpdateFailed("requests.post not available")
+
+            response = post_fn(
+                self.url,
+                data=self.payload,
+                timeout=10,
+                verify=True,  # Enable SSL verification
             )
             response.raise_for_status()
             json_str = response.text
