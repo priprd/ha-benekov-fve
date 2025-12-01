@@ -8,22 +8,26 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.helpers.entity import DeviceInfo
-from homeassistant.const import (
-    CONF_URL, 
-    CONF_USERNAME, 
-    CONF_PASSWORD,
-    PERCENTAGE,
-    # Use stable constants for common items and fall back to literal
-    # unit strings for measurement units to maximize compatibility
-    PERCENTAGE,
-    DEVICE_CLASS_POWER,
-    DEVICE_CLASS_ENERGY,
-    DEVICE_CLASS_TEMPERATURE,
-    DEVICE_CLASS_VOLTAGE,
-    DEVICE_CLASS_CURRENT,
-    DEVICE_CLASS_BATTERY
-)
+from homeassistant import const as ha_const
+from homeassistant.const import CONF_URL, CONF_USERNAME, CONF_PASSWORD
 
+# Compatibility: use Home Assistant constants when available, otherwise
+# fall back to literal strings so the integration works across HA versions.
+PERCENTAGE = getattr(ha_const, "PERCENTAGE", "%")
+UNIT_VOLT = getattr(ha_const, "ELECTRIC_POTENTIAL_VOLT", "V")
+UNIT_AMPERE = getattr(ha_const, "ELECTRIC_CURRENT_AMPERE", "A")
+UNIT_WATT = getattr(ha_const, "POWER_WATT", "W")
+UNIT_KWH = getattr(ha_const, "ENERGY_KILO_WATT_HOUR", "kWh")
+UNIT_TEMP_C = getattr(ha_const, "TEMP_CELSIUS", "°C")
+
+DEVICE_CLASS_POWER = getattr(ha_const, "DEVICE_CLASS_POWER", "power")
+DEVICE_CLASS_ENERGY = getattr(ha_const, "DEVICE_CLASS_ENERGY", "energy")
+DEVICE_CLASS_TEMPERATURE = getattr(ha_const, "DEVICE_CLASS_TEMPERATURE", "temperature")
+DEVICE_CLASS_VOLTAGE = getattr(ha_const, "DEVICE_CLASS_VOLTAGE", "voltage")
+DEVICE_CLASS_CURRENT = getattr(ha_const, "DEVICE_CLASS_CURRENT", "current")
+DEVICE_CLASS_BATTERY = getattr(ha_const, "DEVICE_CLASS_BATTERY", "battery")
+
+# Logger
 _LOGGER = logging.getLogger(__name__)
 
 # Default to 5 seconds as requested
@@ -143,15 +147,15 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry, asyn
     # Create sensors for each metric
     entities = [
         # Renamed Sensor class
-        BenekovFVESensor(coordinator, api, "total_consumption_w", "Total Consumption", "W", DEVICE_CLASS_POWER),
-        BenekovFVESensor(coordinator, api, "pv_power_w", "PV Power", "W", DEVICE_CLASS_POWER),
-        BenekovFVESensor(coordinator, api, "grid_power_w", "Grid Power", "W", DEVICE_CLASS_POWER),
-        BenekovFVESensor(coordinator, api, "battery_power_w", "Battery Power", "W", DEVICE_CLASS_POWER),
+        BenekovFVESensor(coordinator, api, "total_consumption_w", "Total Consumption", UNIT_WATT, DEVICE_CLASS_POWER),
+        BenekovFVESensor(coordinator, api, "pv_power_w", "PV Power", UNIT_WATT, DEVICE_CLASS_POWER),
+        BenekovFVESensor(coordinator, api, "grid_power_w", "Grid Power", UNIT_WATT, DEVICE_CLASS_POWER),
+        BenekovFVESensor(coordinator, api, "battery_power_w", "Battery Power", UNIT_WATT, DEVICE_CLASS_POWER),
         BenekovFVESensor(coordinator, api, "battery_soc_percent", "Battery SOC", PERCENTAGE, DEVICE_CLASS_BATTERY),
-        BenekovFVESensor(coordinator, api, "battery_voltage_v", "Battery Voltage", "V", DEVICE_CLASS_VOLTAGE),
-        BenekovFVESensor(coordinator, api, "battery_current_a", "Battery Current", "A", DEVICE_CLASS_CURRENT),
-        BenekovFVESensor(coordinator, api, "daily_purchase_kwh", "Daily Grid Purchase", "kWh", DEVICE_CLASS_ENERGY, state_attr_key="last_update"),
-        BenekovFVESensor(coordinator, api, "inverter_temp_c", "Inverter Temperature", "°C", DEVICE_CLASS_TEMPERATURE),
+        BenekovFVESensor(coordinator, api, "battery_voltage_v", "Battery Voltage", UNIT_VOLT, DEVICE_CLASS_VOLTAGE),
+        BenekovFVESensor(coordinator, api, "battery_current_a", "Battery Current", UNIT_AMPERE, DEVICE_CLASS_CURRENT),
+        BenekovFVESensor(coordinator, api, "daily_purchase_kwh", "Daily Grid Purchase", UNIT_KWH, DEVICE_CLASS_ENERGY, state_attr_key="last_update"),
+        BenekovFVESensor(coordinator, api, "inverter_temp_c", "Inverter Temperature", UNIT_TEMP_C, DEVICE_CLASS_TEMPERATURE),
     ]
 
     async_add_entities(entities)
