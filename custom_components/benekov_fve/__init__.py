@@ -1,7 +1,7 @@
 """The Benekov FVE Monitor integration."""
 from homeassistant.core import HomeAssistant
 from homeassistant.config_entries import ConfigEntry
-
+DOMAIN = "benekov_fve"
 # Tato funkce je volána, když je integrace spuštěna z konfiguračního toku.
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up Benekov FVE Monitor from a config entry."""
