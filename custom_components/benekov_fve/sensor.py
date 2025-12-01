@@ -72,7 +72,21 @@ class BenekovFVEAPI:
             
     def _safe_get(self, d, keys, default=None):
         """Accesses nested dictionary keys safely."""
-        for key in keys:
+        # Be defensive: allow `keys` to be a single key (str) or iterable.
+        if keys is None:
+            return default
+
+        # If a string was passed, treat it as a single key
+        if isinstance(keys, str):
+            keys = [keys]
+
+        try:
+            iterator = iter(keys)
+        except TypeError:
+            # keys is not iterable
+            return default
+
+        for key in iterator:
             if isinstance(d, dict) and key in d:
                 d = d[key]
             else:
@@ -87,40 +101,45 @@ class BenekovFVEAPI:
             _LOGGER.error("Failed to decode JSON from API: %s", json_str)
             return {"error": "JSON_DECODE_FAILED"}
 
-        # Store unique ID (uid) for the device
-        # Use the UID from the data, or a fallback.
-        self.system_id = data.get("uid", "unknown_benekov_system") 
-        self.system_name = data.get("jmeno", "Benekov FVE System").strip()
+        try:
+            # Store unique ID (uid) for the device
+            # Use the UID from the data, or a fallback.
+            self.system_id = data.get("uid", "unknown_benekov_system")
+            self.system_name = str(data.get("jmeno", "Benekov FVE System")).strip()
 
-        # Create the flat output dictionary
-        output = {
-            "user_name": data.get("jmeno", "Unknown User").strip(),
-            "last_update": data.get("posledniZaznam", "N/A"),
-            "time_of_day": data.get("castDne", "N/A"),
-            "inverter_temp_c": self._safe_get(data, ["teplotaStridace"], 0.0),
-            "wifi_percent": data.get("wifiProc", 0),
-            
-            # Power Flows (W)
-            "inverter_output_w": data.get("Inverter output total power", 0),
-            "total_consumption_w": data.get("spotrebaCelkem", 0),
-            "grid_power_w": data.get("vykonSit", 0), 
-            "battery_power_w": data.get("vykonBat", 0), 
-            "pv_power_w": data.get("vykonFV", 0),
-            
-            # Battery Status
-            "battery_soc_percent": self._safe_get(data, ["baterie", "soc"], 0),
-            "battery_voltage_v": self._safe_get(data, ["baterie", "napeti"], 0.0),
-            "battery_current_a": self._safe_get(data, ["baterie", "proud"], 0.0),
+            # Create the flat output dictionary
+            output = {
+                "user_name": str(data.get("jmeno", "Unknown User")).strip(),
+                "last_update": data.get("posledniZaznam", "N/A"),
+                "time_of_day": data.get("castDne", "N/A"),
+                "inverter_temp_c": self._safe_get(data, ["teplotaStridace"], 0.0),
+                "wifi_percent": data.get("wifiProc", 0),
 
-            # Daily Statistics (kWh)
-            "daily_purchase_kwh": self._safe_get(data, ["statistika", "denni", "NakupEnergie"], 0.0),
-            "daily_charge_kwh": self._safe_get(data, ["statistika", "denni", "NabitiBaterie"], 0.0),
-            "daily_discharge_kwh": self._safe_get(data, ["statistika", "denni", "VybitiBaterie"], 0.0),
-            
-            # Charger Status
-            "charger_2_status": self._safe_get(data, ["nabijecka", "nabijecka2", "stavKonektoru"], "N/A")
-        }
-        return output
+                # Power Flows (W)
+                "inverter_output_w": data.get("Inverter output total power", 0),
+                "total_consumption_w": data.get("spotrebaCelkem", 0),
+                "grid_power_w": data.get("vykonSit", 0),
+                "battery_power_w": data.get("vykonBat", 0),
+                "pv_power_w": data.get("vykonFV", 0),
+
+                # Battery Status
+                "battery_soc_percent": self._safe_get(data, ["baterie", "soc"], 0),
+                "battery_voltage_v": self._safe_get(data, ["baterie", "napeti"], 0.0),
+                "battery_current_a": self._safe_get(data, ["baterie", "proud"], 0.0),
+
+                # Daily Statistics (kWh)
+                "daily_purchase_kwh": self._safe_get(data, ["statistika", "denni", "NakupEnergie"], 0.0),
+                "daily_charge_kwh": self._safe_get(data, ["statistika", "denni", "NabitiBaterie"], 0.0),
+                "daily_discharge_kwh": self._safe_get(data, ["statistika", "denni", "VybitiBaterie"], 0.0),
+
+                # Charger Status
+                "charger_2_status": self._safe_get(data, ["nabijecka", "nabijecka2", "stavKonektoru"], "N/A"),
+            }
+
+            return output
+        except Exception as e:
+            _LOGGER.exception("Unexpected error while parsing API response: %s", e)
+            return {"error": "PARSE_FAILED", "exception": str(e)}
 
 async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry, async_add_entities):
     """Set up the sensor platform from a config entry."""
