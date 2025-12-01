@@ -8,7 +8,7 @@ from homeassistant.const import CONF_URL, CONF_USERNAME, CONF_PASSWORD
 # Import the base API class to test connectivity
 # NOTE: Ensure 'sensor' is the correct module name for your API class
 from .sensor import BenekovFVEAPI, DEFAULT_SCAN_INTERVAL
-
+from .const import DOMAIN
 import logging
 _LOGGER = logging.getLogger(__name__)
 

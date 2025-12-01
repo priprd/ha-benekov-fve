@@ -1,17 +1,16 @@
 """The Benekov FVE Monitor integration."""
 from homeassistant.core import HomeAssistant
 from homeassistant.config_entries import ConfigEntry
-DOMAIN = "benekov_fve"
-# Tato funkce je volána, když je integrace spuštěna z konfiguračního toku.
+from .const import DOMAIN, LOGGER
+
+
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up Benekov FVE Monitor from a config entry."""
-    # V této fázi obvykle uložíte data z config_entry do 'data' a načtete platformy (např. 'sensor').
-    
-    # Uložení dat pro pozdější použití (např. v sensor.py)
+
     hass.data.setdefault("benekov_fve", {})
     hass.data["benekov_fve"][entry.entry_id] = entry.data
 
-    # Načtení platformy 'sensor'.
+    
     await hass.config_entries.async_forward_entry_setup(entry, "sensor")
     
     return True
