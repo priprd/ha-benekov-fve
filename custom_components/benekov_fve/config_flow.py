@@ -14,7 +14,10 @@ _LOGGER = logging.getLogger(__name__)
 # --- Data Schema for the Configuration Form ---
 DATA_SCHEMA = vol.Schema(
     {
-        vol.Required(CONF_URL, description={"suggested_value": "http://your.monitor.api/data"}): cv.url,
+        # Use cv.string here because some HA frontends cannot convert
+        # validation callables like `cv.url` into a UI schema. We validate
+        # the URL explicitly inside `async_step_user` instead.
+        vol.Required(CONF_URL, description={"suggested_value": "http://your.monitor.api/data"}): cv.string,
         vol.Required(CONF_USERNAME, description={"suggested_value": "Client ID (c_monitor)"}): cv.string,
         vol.Required(CONF_PASSWORD, description={"suggested_value": "Token (t_monitor)"}): cv.string,
         vol.Optional("scan_interval", default=5): cv.positive_int,
@@ -41,6 +44,18 @@ class BenekovFVEConfigFlow(config_entries.ConfigFlow):
             c_monitor = user_input[CONF_USERNAME]
             t_monitor = user_input[CONF_PASSWORD]
             scan_interval_s = user_input.get("scan_interval", 5)
+
+            # Validate URL value here (so the UI schema stays simple).
+            try:
+                # cv.url raises vol.Invalid on invalid URL
+                cv.url(url)
+            except Exception:
+                errors[CONF_URL] = "invalid_url"
+                return self.async_show_form(
+                    step_id="user",
+                    data_schema=DATA_SCHEMA,
+                    errors=errors,
+                )
 
             # Import API lazily to avoid import-time failures
             from .sensor import BenekovFVEAPI
