@@ -1,7 +1,9 @@
 import logging
 import json
 from datetime import timedelta
-import requests
+import socket
+import ssl
+from urllib.parse import urlparse, urlencode
 
 from homeassistant.components.sensor import SensorEntity
 from homeassistant.core import HomeAssistant
@@ -47,34 +49,133 @@ class BenekovFVEAPI:
         self.system_id = None # Will store a unique ID for device info
         self.system_name = "Benekov FVE System"
 
+    def _http_post(self, url: str, data: dict, timeout: int = 10, verify: bool = True) -> str:
+        """Perform a minimal HTTP POST using sockets (supports HTTP and HTTPS).
+
+        Returns the response body as a string. Raises OSError/ssl.SSLError on network errors
+        or ValueError for unexpected HTTP responses.
+        """
+        parsed = urlparse(url)
+        scheme = parsed.scheme or "http"
+        host = parsed.hostname
+        port = parsed.port or (443 if scheme == "https" else 80)
+        path = parsed.path or "/"
+        if parsed.query:
+            path += "?" + parsed.query
+
+        body = urlencode(data or {}).encode("utf-8")
+
+        # Build request
+        request_lines = [f"POST {path} HTTP/1.1",
+                         f"Host: {host}",
+                         "User-Agent: benekov_fve/1.0",
+                         "Content-Type: application/x-www-form-urlencoded",
+                         f"Content-Length: {len(body)}",
+                         "Connection: close",
+                         "",
+                         ""]
+        request_header = "\r\n".join(request_lines).encode("utf-8")
+        req = request_header + body
+
+        # Open socket
+        sock = socket.create_connection((host, port), timeout)
+        try:
+            if scheme == "https":
+                if verify:
+                    ctx = ssl.create_default_context()
+                else:
+                    ctx = ssl._create_unverified_context()
+                sock = ctx.wrap_socket(sock, server_hostname=host)
+
+            # Send request
+            sock.sendall(req)
+
+            # Read response until EOF
+            response_chunks = []
+            while True:
+                chunk = sock.recv(4096)
+                if not chunk:
+                    break
+                response_chunks.append(chunk)
+
+            raw = b"".join(response_chunks)
+        finally:
+            try:
+                sock.close()
+            except Exception:
+                pass
+
+        # Split headers and body
+        sep = b"\r\n\r\n"
+        if sep not in raw:
+            raise ValueError("Invalid HTTP response")
+
+        header_raw, body = raw.split(sep, 1)
+        header_lines = header_raw.split(b"\r\n")
+        status_line = header_lines[0].decode(errors="ignore")
+        # Example: HTTP/1.1 200 OK
+        parts = status_line.split()
+        if len(parts) < 2:
+            raise ValueError(f"Invalid status line: {status_line}")
+        try:
+            status = int(parts[1])
+        except ValueError:
+            raise ValueError(f"Invalid status code in status line: {status_line}")
+
+        # Check for chunked transfer encoding
+        headers = {}
+        for h in header_lines[1:]:
+            if b":" in h:
+                k, v = h.split(b":", 1)
+                headers[k.decode().strip().lower()] = v.decode().strip()
+
+        if headers.get("transfer-encoding") == "chunked":
+            # Decode chunked body
+            body = self._decode_chunked(body)
+
+        # If status is not OK, raise
+        if status < 200 or status >= 300:
+            raise ValueError(f"HTTP {status}: {status_line}")
+
+        return body.decode("utf-8", errors="replace")
+
+    def _decode_chunked(self, raw: bytes) -> bytes:
+        """Decode an HTTP chunked transfer-encoded body."""
+        i = 0
+        out = bytearray()
+        length = len(raw)
+        while i < length:
+            # read chunk-size line
+            nl = raw.find(b"\r\n", i)
+            if nl == -1:
+                break
+            line = raw[i:nl].decode("ascii", errors="ignore").strip()
+            try:
+                chunk_size = int(line.split(";", 1)[0], 16)
+            except ValueError:
+                break
+            i = nl + 2
+            if chunk_size == 0:
+                # consume trailing CRLF after last chunk
+                break
+            out += raw[i:i+chunk_size]
+            i += chunk_size + 2
+        return bytes(out)
+
     def get_data(self):
         """Fetch and parse data synchronously (runs in HA executor)."""
         try:
-            # 1. Fetch data via POST request. Be defensive: ensure `requests`
-            # module exposes `post` (guards against accidental typos like
-            # `request.posrt` in modified environments).
-            post_fn = getattr(requests, "post", None)
-            if post_fn is None:
-                _LOGGER.error("`requests.post` not available — requests module broken or misimported")
-                raise UpdateFailed("requests.post not available")
+            # 1. Fetch data via a socket-based POST to avoid relying on requests/urllib3
+            json_str = self._http_post(self.url, self.payload, timeout=10, verify=True)
 
-            response = post_fn(
-                self.url,
-                data=self.payload,
-                timeout=10,
-                verify=True,  # Enable SSL verification
-            )
-            response.raise_for_status()
-            json_str = response.text
-            
             # 2. Parse the JSON string
             return self._parse_energy_status(json_str)
-            
-        except requests.exceptions.RequestException as e:
-            _LOGGER.error("Failed to fetch data from API: %s", e)
+
+        except (OSError, ssl.SSLError, ValueError) as e:
+            _LOGGER.error("Failed to fetch data from API (socket): %s", e)
             raise UpdateFailed(f"API communication failed: {e}") from e
         except Exception as e:
-            _LOGGER.error("An unexpected error occurred during API call: %s", e)
+            _LOGGER.exception("An unexpected error occurred during API call: %s", e)
             raise UpdateFailed(f"Unexpected error: {e}") from e
             
     def _safe_get(self, d, keys, default=None):
