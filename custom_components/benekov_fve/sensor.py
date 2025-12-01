@@ -42,7 +42,7 @@ class BenekovFVEAPI:
         self.url = url
         self.payload = {
             'c_monitor': c_monitor,
-            't_monitor': t_monitor
+            't_session': t_monitor
         }
         self.system_id = None # Will store a unique ID for device info
         self.system_name = "Benekov FVE System"
