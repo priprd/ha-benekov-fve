@@ -13,11 +13,9 @@ from homeassistant.const import (
     CONF_USERNAME, 
     CONF_PASSWORD,
     PERCENTAGE,
-    ELECTRIC_POTENTIAL_VOLT,
-    ELECTRIC_CURRENT_AMPERE,
-    POWER_WATT,
-    ENERGY_KILO_WATT_HOUR,
-    TEMP_CELSIUS,
+    # Use stable constants for common items and fall back to literal
+    # unit strings for measurement units to maximize compatibility
+    PERCENTAGE,
     DEVICE_CLASS_POWER,
     DEVICE_CLASS_ENERGY,
     DEVICE_CLASS_TEMPERATURE,
@@ -145,15 +143,15 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry, asyn
     # Create sensors for each metric
     entities = [
         # Renamed Sensor class
-        BenekovFVESensor(coordinator, api, "total_consumption_w", "Total Consumption", POWER_WATT, DEVICE_CLASS_POWER),
-        BenekovFVESensor(coordinator, api, "pv_power_w", "PV Power", POWER_WATT, DEVICE_CLASS_POWER),
-        BenekovFVESensor(coordinator, api, "grid_power_w", "Grid Power", POWER_WATT, DEVICE_CLASS_POWER),
-        BenekovFVESensor(coordinator, api, "battery_power_w", "Battery Power", POWER_WATT, DEVICE_CLASS_POWER),
+        BenekovFVESensor(coordinator, api, "total_consumption_w", "Total Consumption", "W", DEVICE_CLASS_POWER),
+        BenekovFVESensor(coordinator, api, "pv_power_w", "PV Power", "W", DEVICE_CLASS_POWER),
+        BenekovFVESensor(coordinator, api, "grid_power_w", "Grid Power", "W", DEVICE_CLASS_POWER),
+        BenekovFVESensor(coordinator, api, "battery_power_w", "Battery Power", "W", DEVICE_CLASS_POWER),
         BenekovFVESensor(coordinator, api, "battery_soc_percent", "Battery SOC", PERCENTAGE, DEVICE_CLASS_BATTERY),
-        BenekovFVESensor(coordinator, api, "battery_voltage_v", "Battery Voltage", ELECTRIC_POTENTIAL_VOLT, DEVICE_CLASS_VOLTAGE),
-        BenekovFVESensor(coordinator, api, "battery_current_a", "Battery Current", ELECTRIC_CURRENT_AMPERE, DEVICE_CLASS_CURRENT),
-        BenekovFVESensor(coordinator, api, "daily_purchase_kwh", "Daily Grid Purchase", ENERGY_KILO_WATT_HOUR, DEVICE_CLASS_ENERGY, state_attr_key="last_update"),
-        BenekovFVESensor(coordinator, api, "inverter_temp_c", "Inverter Temperature", TEMP_CELSIUS, DEVICE_CLASS_TEMPERATURE),
+        BenekovFVESensor(coordinator, api, "battery_voltage_v", "Battery Voltage", "V", DEVICE_CLASS_VOLTAGE),
+        BenekovFVESensor(coordinator, api, "battery_current_a", "Battery Current", "A", DEVICE_CLASS_CURRENT),
+        BenekovFVESensor(coordinator, api, "daily_purchase_kwh", "Daily Grid Purchase", "kWh", DEVICE_CLASS_ENERGY, state_attr_key="last_update"),
+        BenekovFVESensor(coordinator, api, "inverter_temp_c", "Inverter Temperature", "°C", DEVICE_CLASS_TEMPERATURE),
     ]
 
     async_add_entities(entities)
