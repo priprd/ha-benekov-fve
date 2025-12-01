@@ -141,8 +141,21 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry, asyn
         update_interval=timedelta(seconds=scan_interval_s),
     )
 
-    # Fetch initial data and then start the coordinator
-    await coordinator.async_config_entry_first_refresh()
+    # Do NOT perform an initial blocking refresh here. The integration's
+    # `async_setup_entry` in `__init__.py` already validated connectivity.
+    # Performing `async_config_entry_first_refresh` here can raise
+    # `ConfigEntryNotReady` from the platform which we prefer to avoid.
+    # Let the coordinator handle its first update on its own schedule.
+
+    # Store coordinator for later access/unload
+    try:
+        from .const import DOMAIN
+    except Exception:
+        DOMAIN = "benekov_fve"
+
+    hass.data.setdefault(DOMAIN, {})
+    hass.data[DOMAIN].setdefault(config_entry.entry_id, {})
+    hass.data[DOMAIN][config_entry.entry_id]["coordinator"] = coordinator
 
     # Create sensors for each metric
     entities = [
