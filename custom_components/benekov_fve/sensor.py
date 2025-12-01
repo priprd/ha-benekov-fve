@@ -267,7 +267,9 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry, asyn
     
     async def _async_update_data():
         """Wrapper to run the blocking `api.get_data` in the executor."""
-        return await hass.async_add_executor_job(api.get_data)
+        result = await hass.async_add_executor_job(api.get_data)
+        _LOGGER.debug("BenekovFVE: _async_update_data result type=%s", type(result))
+        return result
 
     coordinator = DataUpdateCoordinator(
         hass,
