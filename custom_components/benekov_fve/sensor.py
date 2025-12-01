@@ -265,14 +265,15 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry, asyn
     # Renamed API class
     api = BenekovFVEAPI(hass, url, c_monitor, t_monitor)
     
+    async def _async_update_data():
+        """Wrapper to run the blocking `api.get_data` in the executor."""
+        return await hass.async_add_executor_job(api.get_data)
+
     coordinator = DataUpdateCoordinator(
         hass,
         _LOGGER,
-        name="Benekov FVE Monitor", # Coordinator name update
-        # `api.get_data` is synchronous; run it in the executor so the
-        # coordinator can `await` the returned coroutine and not try to
-        # `await` a plain dict (which caused the TypeError).
-        update_method=lambda: hass.async_add_executor_job(api.get_data),
+        name="Benekov FVE Monitor",
+        update_method=_async_update_data,
         update_interval=timedelta(seconds=scan_interval_s),
     )
 
