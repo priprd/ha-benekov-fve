@@ -10,7 +10,10 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     hass.data["benekov_fve"][entry.entry_id] = entry.data
 
     
-    await hass.config_entries.async_forward_entry_setup(entry, "sensor")
+    # Forward setup to the sensor platform. Use `async_forward_entry_setups`
+    # (plural) which accepts a list of platforms and is compatible with
+    # different Home Assistant versions.
+    await hass.config_entries.async_forward_entry_setups(entry, ["sensor"])
     
     return True
 
