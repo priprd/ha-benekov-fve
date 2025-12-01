@@ -101,6 +101,11 @@ class BenekovFVEAPI:
             _LOGGER.error("Failed to decode JSON from API: %s", json_str)
             return {"error": "JSON_DECODE_FAILED"}
 
+        # Ensure we received a mapping/dictionary. If not, bail out early.
+        if not isinstance(data, dict):
+            _LOGGER.error("API returned non-dict JSON payload: %s", repr(data))
+            return {"error": "INVALID_PAYLOAD", "payload": data}
+
         try:
             # Store unique ID (uid) for the device
             # Use the UID from the data, or a fallback.
