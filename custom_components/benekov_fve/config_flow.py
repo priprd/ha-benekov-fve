@@ -24,7 +24,7 @@ DATA_SCHEMA = vol.Schema(
 )
 
 # --- Configuration Flow Handler ---
-class BenekovFVEConfigFlow(config_entries.ConfigFlow):
+class BenekovFVEConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     """Handle a config flow for the Benekov FVE Monitor integration."""
 
     # This MUST match the domain in your manifest.json
