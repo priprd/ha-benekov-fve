@@ -24,7 +24,7 @@ DATA_SCHEMA = vol.Schema(
 )
 
 # --- Configuration Flow Handler ---
-@config_entries.ConfigFlow.register(DOMAIN)
+@config_entries.HANDLERS.register(DOMAIN)
 class BenekovFVEConfigFlow(config_entries.ConfigFlow):
     """Handle a config flow for the Benekov FVE Monitor integration.
 
