@@ -308,6 +308,7 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry, asyn
         BenekovFVESensor(coordinator, api, "battery_voltage_v", "Battery Voltage", UNIT_VOLT, DEVICE_CLASS_VOLTAGE),
         BenekovFVESensor(coordinator, api, "battery_current_a", "Battery Current", UNIT_AMPERE, DEVICE_CLASS_CURRENT),
         BenekovFVESensor(coordinator, api, "battery_temp_c", "Battery Temperature", UNIT_TEMP_C, DEVICE_CLASS_TEMPERATURE),
+        BenekovFVESensorBattery(coordinator, api, "battery_temp_c", "Battery Temperature", UNIT_TEMP_C, DEVICE_CLASS_TEMPERATURE),
         BenekovFVESensor(coordinator, api, "daily_purchase_kwh", "Daily Grid Purchase", UNIT_KWH, DEVICE_CLASS_ENERGY, state_attr_key="last_update"),
         BenekovFVESensor(coordinator, api, "inverter_temp_c", "Inverter Temperature", UNIT_TEMP_C, DEVICE_CLASS_TEMPERATURE),
     ]
@@ -333,6 +334,82 @@ class BenekovFVESensor(SensorEntity):
         """Return the name of the sensor."""
         # Use the system name + the metric name
         return f"{self._api.system_name} {self._name}"
+
+    @property
+    def unique_id(self) -> str:
+        """Return a unique ID for this sensor."""
+        # Unique ID based on the system ID and the metric key
+        return f"benekov_fve_{self._api.system_id}_{self._key}"
+
+    @property
+    def state(self):
+        """Return the state of the sensor."""
+        # Get the value from the coordinator's data
+        return self.coordinator.data.get(self._key)
+
+    @property
+    def unit_of_measurement(self):
+        """Return the unit of measurement."""
+        return self._unit
+
+    @property
+    def device_class(self):
+        """Return the device class."""
+        return self._device_class
+
+    @property
+    def device_info(self) -> DeviceInfo:
+        """Return device information for the system."""
+        return DeviceInfo(
+            identifiers={(self._api.system_id, "BenekovFVE")},
+            name=self._api.system_name,
+            manufacturer="Benekov",
+            model="FVE Monitoring Inverter",
+        )
+
+    @property
+    def extra_state_attributes(self):
+        """Return the state attributes."""
+        # For the daily purchase sensor, also show the last update time as an attribute
+        if self._state_attr_key and self.coordinator.data.get(self._state_attr_key):
+            return {
+                "Last Update Time": self.coordinator.data.get(self._state_attr_key),
+                "Charger 2 Status": self.coordinator.data.get("charger_2_status"),
+                "Time of Day": self.coordinator.data.get("time_of_day"),
+            }
+        return {
+            "Charger 2 Status": self.coordinator.data.get("charger_2_status"),
+            "Time of Day": self.coordinator.data.get("time_of_day"),
+        }
+
+    async def async_added_to_hass(self):
+        """When entity is added to hass."""
+        # Register the update listener for the coordinator
+        self.async_on_remove(self.coordinator.async_add_listener(self.async_write_ha_state))
+
+    async def async_update(self):
+        """Update the entity. Only used by the coordinator."""
+        # The coordinator handles the actual data refresh
+        pass
+
+class BenekovFVESensorBattery(SensorEntity):
+    """Representation of a sensor from the Benekov FVE system."""
+
+    def __init__(self, coordinator, api: BenekovFVEAPI, key: str, name: str, unit: str, device_class: str = None, state_attr_key: str = None):
+        """Initialize the sensor."""
+        self.coordinator = coordinator
+        self._api = api
+        self._key = key
+        self._name = name
+        self._unit = unit
+        self._device_class = device_class
+        self._state_attr_key = state_attr_key
+
+    @property
+    def name(self):
+        """Return the name of the sensor."""
+        # Use the system name + the metric name
+        return f"{self._api.system_name} {self._name} Battery"
 
     @property
     def unique_id(self) -> str:
