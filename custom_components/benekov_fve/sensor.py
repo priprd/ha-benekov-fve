@@ -239,6 +239,7 @@ class BenekovFVEAPI:
                 "battery_soc_percent": self._safe_get(data, ["baterie", "soc"], 0),
                 "battery_voltage_v": self._safe_get(data, ["baterie", "napeti"], 0.0),
                 "battery_current_a": self._safe_get(data, ["baterie", "proud"], 0.0),
+                "battery_temp_c": self._safe_get(data, ["baterie", "teplota"], 0),
 
                 # Daily Statistics (kWh)
                 "daily_purchase_kwh": self._safe_get(data, ["statistika", "denni", "NakupEnergie"], 0.0),
@@ -306,6 +307,7 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry, asyn
         BenekovFVESensor(coordinator, api, "battery_soc_percent", "Battery SOC", PERCENTAGE, DEVICE_CLASS_BATTERY),
         BenekovFVESensor(coordinator, api, "battery_voltage_v", "Battery Voltage", UNIT_VOLT, DEVICE_CLASS_VOLTAGE),
         BenekovFVESensor(coordinator, api, "battery_current_a", "Battery Current", UNIT_AMPERE, DEVICE_CLASS_CURRENT),
+        BenekovFVESensor(coordinator, api, "battery_temp_c", "Battery Temperature", UNIT_TEMP_C, DEVICE_CLASS_TEMPERATURE),
         BenekovFVESensor(coordinator, api, "daily_purchase_kwh", "Daily Grid Purchase", UNIT_KWH, DEVICE_CLASS_ENERGY, state_attr_key="last_update"),
         BenekovFVESensor(coordinator, api, "inverter_temp_c", "Inverter Temperature", UNIT_TEMP_C, DEVICE_CLASS_TEMPERATURE),
     ]
