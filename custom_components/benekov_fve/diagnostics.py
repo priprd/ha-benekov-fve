@@ -27,6 +27,8 @@ async def async_get_config_entry_diagnostics(hass: HomeAssistant, entry: ConfigE
     and included in support bundles. Keep this data minimal and avoid
     exposing secrets.
     """
+    _LOGGER.debug("async_get_config_entry_diagnostics called for entry=%s", entry.entry_id)
+
     # Try to read existing coordinator data (already-polled values)
     entry_container = hass.data.get(DOMAIN, {}).get(entry.entry_id, {})
     coordinator = entry_container.get("coordinator")
