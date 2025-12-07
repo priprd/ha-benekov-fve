@@ -253,7 +253,7 @@ class BenekovFVEAPI:
                 "fpv_power_string_3_w": self._safe_get(data, ["vykonFV3"], 0),
                 "fpv_power_string_4_w": self._safe_get(data, ["vykonFV4"], 0),
 
-                "fpv_voltage_string1_v": self._safe_get(data, ["napetiFV"], 0.0),
+                "fpv_voltage_string1_v": self._safe_get(data, ["napetiFV1"], 0.0),
                 "fpv_voltage_string2_v": self._safe_get(data, ["napetiFV2"], 0.0),
                 "fpv_voltage_string3_v": self._safe_get(data, ["napetiFV3"], 0.0),
                 "fpv_voltage_string4_v": self._safe_get(data, ["napetiFV4"], 0.0),
