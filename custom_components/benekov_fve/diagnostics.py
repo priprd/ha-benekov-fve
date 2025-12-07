@@ -52,4 +52,5 @@ async def async_get_config_entry_diagnostics(hass: HomeAssistant, entry: ConfigE
     return {
         "wifi_percent": wifi_percent,
         "last_update": last_update,
+        "Diaggnostics fetched successfully": True,
     }
