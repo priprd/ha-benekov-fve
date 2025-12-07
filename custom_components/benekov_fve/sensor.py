@@ -298,18 +298,22 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry, asyn
     hass.data[DOMAIN][config_entry.entry_id]["coordinator"] = coordinator
 
     # Create sensors for each metric
+    entry_id = config_entry.entry_id
+
     entities = [
-        # Renamed Sensor class
-        BenekovFVESensor(coordinator, api, "total_consumption_w", "Total Consumption", UNIT_WATT, DEVICE_CLASS_POWER),
-        BenekovFVESensor(coordinator, api, "pv_power_w", "PV Power", UNIT_WATT, DEVICE_CLASS_POWER),
-        BenekovFVESensor(coordinator, api, "grid_power_w", "Grid Power", UNIT_WATT, DEVICE_CLASS_POWER),
-        BenekovFVESensor(coordinator, api, "battery_power_w", "Battery Power", UNIT_WATT, DEVICE_CLASS_POWER),
-        BenekovFVESensor(coordinator, api, "battery_soc_percent", "Battery SOC", PERCENTAGE, DEVICE_CLASS_BATTERY),
-        BenekovFVESensor(coordinator, api, "battery_voltage_v", "Battery Voltage", UNIT_VOLT, DEVICE_CLASS_VOLTAGE),
-        BenekovFVESensor(coordinator, api, "battery_current_a", "Battery Current", UNIT_AMPERE, DEVICE_CLASS_CURRENT),
-        BenekovFVESensor(coordinator, api, "battery_temp_c", "Battery Temperature", UNIT_TEMP_C, DEVICE_CLASS_TEMPERATURE),
-        BenekovFVESensor(coordinator, api, "daily_purchase_kwh", "Daily Grid Purchase", UNIT_KWH, DEVICE_CLASS_ENERGY, state_attr_key="last_update"),
-        BenekovFVESensor(coordinator, api, "inverter_temp_c", "Inverter Temperature", UNIT_TEMP_C, DEVICE_CLASS_TEMPERATURE),
+        # Renamed Sensor class; pass stable entry_id for unique IDs
+        BenekovFVESensor(entry_id, coordinator, api, "total_consumption_w", "Total Consumption", UNIT_WATT, DEVICE_CLASS_POWER),
+        BenekovFVESensor(entry_id, coordinator, api, "pv_power_w", "PV Power", UNIT_WATT, DEVICE_CLASS_POWER),
+        BenekovFVESensor(entry_id, coordinator, api, "grid_power_w", "Grid Power", UNIT_WATT, DEVICE_CLASS_POWER),
+        BenekovFVESensor(entry_id, coordinator, api, "battery_power_w", "Battery Power", UNIT_WATT, DEVICE_CLASS_POWER),
+        BenekovFVESensor(entry_id, coordinator, api, "battery_soc_percent", "Battery SOC", PERCENTAGE, DEVICE_CLASS_BATTERY),
+        BenekovFVESensor(entry_id, coordinator, api, "battery_voltage_v", "Battery Voltage", UNIT_VOLT, DEVICE_CLASS_VOLTAGE),
+        BenekovFVESensor(entry_id, coordinator, api, "battery_current_a", "Battery Current", UNIT_AMPERE, DEVICE_CLASS_CURRENT),
+        BenekovFVESensor(entry_id, coordinator, api, "battery_temp_c", "Battery Temperature", UNIT_TEMP_C, DEVICE_CLASS_TEMPERATURE),
+        BenekovFVESensor(entry_id, coordinator, api, "daily_purchase_kwh", "Daily Grid Purchase", UNIT_KWH, DEVICE_CLASS_ENERGY, state_attr_key="last_update"),
+        BenekovFVESensor(entry_id, coordinator, api, "inverter_temp_c", "Inverter Temperature", UNIT_TEMP_C, DEVICE_CLASS_TEMPERATURE),
+        # Diagnostic / status sensor
+        BenekovFVESensor(entry_id, coordinator, api, "wifi_percent", "WiFi Signal", PERCENTAGE, None),
     ]
 
     async_add_entities(entities)
@@ -317,9 +321,9 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry, asyn
 
 class BenekovFVESensor(SensorEntity):
     """Representation of a sensor from the Benekov FVE system."""
-
-    def __init__(self, coordinator, api: BenekovFVEAPI, key: str, name: str, unit: str, device_class: str = None, state_attr_key: str = None):
+    def __init__(self, entry_id: str, coordinator, api: BenekovFVEAPI, key: str, name: str, unit: str, device_class: str = None, state_attr_key: str = None):
         """Initialize the sensor."""
+        self._entry_id = entry_id
         self.coordinator = coordinator
         self._api = api
         self._key = key
@@ -337,9 +341,10 @@ class BenekovFVESensor(SensorEntity):
     @property
     def unique_id(self) -> str:
         """Return a unique ID for this sensor."""
-        # Unique ID based on the system ID and the metric key
-        system_id = getattr(self._api, "system_id", None) or "unknown"
-        return f"benekov_fve_{system_id}_{self._key}"
+        # Use the config entry id + key for a stable unique id that
+        # does not change between restarts or before the API provides a UID.
+        entry_part = getattr(self, "_entry_id", "unknown_entry")
+        return f"benekov_fve_{entry_part}_{self._key}"
 
     @property
     def state(self):
