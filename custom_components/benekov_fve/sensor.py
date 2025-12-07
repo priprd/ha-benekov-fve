@@ -338,13 +338,18 @@ class BenekovFVESensor(SensorEntity):
     def unique_id(self) -> str:
         """Return a unique ID for this sensor."""
         # Unique ID based on the system ID and the metric key
-        return f"benekov_fve_{self._api.system_id}_{self._key}"
+        system_id = getattr(self._api, "system_id", None) or "unknown"
+        return f"benekov_fve_{system_id}_{self._key}"
 
     @property
     def state(self):
         """Return the state of the sensor."""
         # Get the value from the coordinator's data
-        return self.coordinator.data.get(self._key)
+        data = getattr(self.coordinator, "data", None)
+        if not isinstance(data, dict):
+            # Data not yet available
+            return None
+        return data.get(self._key)
 
     @property
     def unit_of_measurement(self):
@@ -370,16 +375,15 @@ class BenekovFVESensor(SensorEntity):
     def extra_state_attributes(self):
         """Return the state attributes."""
         # For the daily purchase sensor, also show the last update time as an attribute
-        if self._state_attr_key and self.coordinator.data.get(self._state_attr_key):
-            return {
-                "Last Update Time": self.coordinator.data.get(self._state_attr_key),
-                "Charger 2 Status": self.coordinator.data.get("charger_2_status"),
-                "Time of Day": self.coordinator.data.get("time_of_day"),
-            }
-        return {
-            "Charger 2 Status": self.coordinator.data.get("charger_2_status"),
-            "Time of Day": self.coordinator.data.get("time_of_day"),
+        data = getattr(self.coordinator, "data", {}) or {}
+        # For the daily purchase sensor, also show the last update time as an attribute
+        attrs = {
+            "Charger 2 Status": data.get("charger_2_status"),
+            "Time of Day": data.get("time_of_day"),
         }
+        if self._state_attr_key and data.get(self._state_attr_key):
+            attrs["Last Update Time"] = data.get(self._state_attr_key)
+        return attrs
 
     async def async_added_to_hass(self):
         """When entity is added to hass."""
