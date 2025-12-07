@@ -232,10 +232,10 @@ class BenekovFVEAPI:
                 "inverter_output_w": data.get("Inverter output total power", 0),
                 "total_consumption_w": data.get("spotrebaCelkem", 0),
                 "grid_power_w": data.get("vykonSit", 0),
-                "battery_power_w": data.get("vykonBat", 0),
-                "pv_power_w": data.get("vykonFV", 0),
+
 
                 # Battery Status
+                "battery_power_w": data.get("vykonBat", 0),
                 "battery_soc_percent": self._safe_get(data, ["baterie", "soc"], 0),
                 "battery_voltage_v": self._safe_get(data, ["baterie", "napeti"], 0.0),
                 "battery_current_a": self._safe_get(data, ["baterie", "proud"], 0.0),
@@ -320,7 +320,6 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry, asyn
     entities = [
         # Renamed Sensor class; pass stable entry_id for unique IDs
         BenekovFVESensor(entry_id, coordinator, api, "total_consumption_w", "Total Consumption", UNIT_WATT, DEVICE_CLASS_POWER),
-        BenekovFVESensor(entry_id, coordinator, api, "pv_power_w", "PV Power", UNIT_WATT, DEVICE_CLASS_POWER),
         BenekovFVESensor(entry_id, coordinator, api, "grid_power_w", "Grid Power", UNIT_WATT, DEVICE_CLASS_POWER),
         BenekovFVESensor(entry_id, coordinator, api, "battery_power_w", "Battery Power", UNIT_WATT, DEVICE_CLASS_POWER),
         BenekovFVESensor(entry_id, coordinator, api, "battery_soc_percent", "Battery SOC", PERCENTAGE, DEVICE_CLASS_BATTERY),
