@@ -1,12 +1,3 @@
-"""Diagnostics support for the benekov_fve integration.
-
-Home Assistant will call `async_get_config_entry_diagnostics` when a user
-requests diagnostics for the integration. We return a small, non-sensitive
-diagnostics payload containing `wifi_percent` (the requested value) and a
-few non-sensitive fields to help troubleshooting.
-
-Note: we avoid returning secrets (passwords, tokens).
-"""
 from __future__ import annotations
 
 import logging
@@ -14,6 +5,7 @@ from typing import Any
 
 from homeassistant.core import HomeAssistant
 from homeassistant.config_entries import ConfigEntry
+from homeassistant.components.diagnostics import async_redact_data
 
 from .const import DOMAIN
 

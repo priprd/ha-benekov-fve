@@ -246,6 +246,23 @@ class BenekovFVEAPI:
                 "daily_charge_kwh": self._safe_get(data, ["statistika", "denni", "NabitiBaterie"], 0.0),
                 "daily_discharge_kwh": self._safe_get(data, ["statistika", "denni", "VybitiBaterie"], 0.0),
 
+                # Solar Panel production
+                "fpv_power_total_w": self._safe_get(data, ["vykonFV"], 0),
+                "fpv_power_string_1_w": self._safe_get(data, ["vykonFV1"], 0),
+                "fpv_power_string_2_w": self._safe_get(data, ["vykonFV2"], 0),
+                "fpv_power_string_3_w": self._safe_get(data, ["vykonFV3"], 0),
+                "fpv_power_string_4_w": self._safe_get(data, ["vykonFV4"], 0),
+
+                "fpv_voltage_string1_v": self._safe_get(data, ["napetiFV"], 0.0),
+                "fpv_voltage_string2_v": self._safe_get(data, ["napetiFV2"], 0.0),
+                "fpv_voltage_string3_v": self._safe_get(data, ["napetiFV3"], 0.0),
+                "fpv_voltage_string4_v": self._safe_get(data, ["napetiFV4"], 0.0),
+
+                # Unit Status
+                "unit_l1_v": self._safe_get(data, ["stridacL1Voltage"], 0),
+                "unit_l2_v": self._safe_get(data, ["stridacL2Voltage"], 0),
+                "unit_l3_v": self._safe_get(data, ["stridacL3Voltage"], 0.0),
+                "unit_frequency_hz": self._safe_get(data, ["stridacFrequency"], 0.0),
                 # Charger Status
                 "charger_2_status": self._safe_get(data, ["nabijecka", "nabijecka2", "stavKonektoru"], "N/A"),
             }
@@ -312,6 +329,17 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry, asyn
         BenekovFVESensor(entry_id, coordinator, api, "battery_temp_c", "Battery Temperature", UNIT_TEMP_C, DEVICE_CLASS_TEMPERATURE),
         BenekovFVESensor(entry_id, coordinator, api, "daily_purchase_kwh", "Daily Grid Purchase", UNIT_KWH, DEVICE_CLASS_ENERGY, state_attr_key="last_update"),
         BenekovFVESensor(entry_id, coordinator, api, "inverter_temp_c", "Inverter Temperature", UNIT_TEMP_C, DEVICE_CLASS_TEMPERATURE),
+        BenekovFVESensor(entry_id, coordinator, api, "daily_charge_kwh", "Daily Battery Charge", UNIT_KWH, DEVICE_CLASS_ENERGY),
+        BenekovFVESensor(entry_id, coordinator, api, "daily_discharge_kwh", "Daily Battery Discharge", UNIT_KWH, DEVICE_CLASS_ENERGY),
+        BenekovFVESensor(entry_id, coordinator, api, "fpv_power_total_w", "Total Solar Panels Power", UNIT_WATT, DEVICE_CLASS_POWER),
+        BenekovFVESensor(entry_id, coordinator, api, "fpv_power_string_1_w", "Solar Panels Power String 1", UNIT_WATT, DEVICE_CLASS_POWER),
+        BenekovFVESensor(entry_id, coordinator, api, "fpv_power_string_2_w", "Solar Panels Power String 2", UNIT_WATT, DEVICE_CLASS_POWER),
+        BenekovFVESensor(entry_id, coordinator, api, "fpv_power_string_3_w", "Solar Panels Power String 3", UNIT_WATT, DEVICE_CLASS_POWER),
+        BenekovFVESensor(entry_id, coordinator, api, "fpv_power_string_4_w", "Solar Panels Power String 4", UNIT_WATT, DEVICE_CLASS_POWER),
+        BenekovFVESensor(entry_id, coordinator, api, "fpv_voltage_string1_v", "Solar Panels Voltage String 1", UNIT_VOLT, DEVICE_CLASS_VOLTAGE),
+        BenekovFVESensor(entry_id, coordinator, api, "fpv_voltage_string2_v", "Solar Panels Voltage String 2", UNIT_VOLT, DEVICE_CLASS_VOLTAGE),
+        BenekovFVESensor(entry_id, coordinator, api, "fpv_voltage_string3_v", "Solar Panels Voltage String 3", UNIT_VOLT, DEVICE_CLASS_VOLTAGE),
+        BenekovFVESensor(entry_id, coordinator, api, "fpv_voltage_string4_v", "Solar Panels Voltage String 4", UNIT_VOLT, DEVICE_CLASS_VOLTAGE),
         # Diagnostic / status sensor
         BenekovFVESensor(entry_id, coordinator, api, "wifi_percent", "WiFi Signal", PERCENTAGE, None),
     ]
