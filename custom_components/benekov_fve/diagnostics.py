@@ -22,5 +22,5 @@ async def async_get_config_entry_diagnostics(hass: HomeAssistant, entry: ConfigE
     _LOGGER.debug("async_get_config_entry_diagnostics called for entry=%s", entry.entry_id)
 
     return {
-        "Diaggnostics fetched successfully": True,
+        "Diaggnostics fetched successfully": "Yes",
     }
