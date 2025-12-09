@@ -17,10 +17,10 @@ DATA_SCHEMA = vol.Schema(
         # Use cv.string here because some HA frontends cannot convert
         # validation callables like `cv.url` into a UI schema. We validate
         # the URL explicitly inside `async_step_user` instead.
-        vol.Required(CONF_URL, description={"suggested_value": "http://your.monitor.api/data"}): cv.string,
-        vol.Required(CONF_USERNAME, description={"suggested_value": "Client ID (c_monitor)"}): cv.string,
-        vol.Required(CONF_PASSWORD, description={"suggested_value": "Token (t_monitor)"}): cv.string,
-        vol.Optional("scan_interval", default=5): cv.positive_int,
+        vol.Required(CONF_URL, description={"suggested_value": "https://deye.cz/monitoring/api.php"}): cv.string,
+        vol.Required(CONF_USERNAME, description={"suggested_value": "c_monitor"}): cv.string,
+        vol.Required(CONF_PASSWORD, description={"suggested_value": "t_monitor"}): cv.string,
+        vol.Optional("scan_interval", default=10): cv.positive_int,
     }
 )
 
