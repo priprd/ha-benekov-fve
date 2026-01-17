@@ -320,7 +320,7 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry, asyn
     entities = [
         # Renamed Sensor class; pass stable entry_id for unique IDs
         BenekovFVESensor(entry_id, coordinator, api, "total_consumption_w", "Total Consumption", UNIT_WATT, DEVICE_CLASS_POWER),
-        BenekovFVESensor(entry_id, coordinator, api, "grid_power_w", "Grid Power", UNIT_WATT, DEVICE_CLASS_POWER),
+        BenekovFVESensor(entry_id, coordinator, api, "grid_power_w", "Grid Power", UNIT_WATT, DEVICE_CLASS_POWER,state_attr_key="measurement"),
         BenekovFVESensor(entry_id, coordinator, api, "battery_power_w", "Battery Power", UNIT_WATT, DEVICE_CLASS_POWER),
         BenekovFVESensor(entry_id, coordinator, api, "battery_soc_percent", "Battery SOC", PERCENTAGE, DEVICE_CLASS_BATTERY),
         BenekovFVESensor(entry_id, coordinator, api, "battery_voltage_v", "Battery Voltage", UNIT_VOLT, DEVICE_CLASS_VOLTAGE),
