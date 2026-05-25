@@ -18,7 +18,9 @@ The integration fetches data every 5 seconds (default, configurable) and creates
     * Voltage (`battery_voltage_v`)
     * Current (`battery_current_a`)
 * **Daily Energy Statistics (kWh):**
+    * Daily Solar Production (`daily_solar_production_kwh`) - **Compatible with Energy Dashboard**
     * Daily Grid Purchase (`daily_purchase_kwh`)
+    * Daily Grid Export (`daily_grid_export_kwh`) - **Compatible with Energy Dashboard**
     * Daily Battery Charge (`daily_charge_kwh`)
     * Daily Battery Discharge (`daily_discharge_kwh`)
 * **System Status:**
@@ -75,4 +77,54 @@ This integration expects the API to respond with a JSON structure similar to the
 | `pv_power_w` | `vykonFV` | W | Current power production from PV panels. |
 | `battery_soc_percent` | `baterie.soc` | % | Battery State of Charge. |
 | `daily_purchase_kwh` | `statistika.denni.NakupEnergie` | kWh | Total energy purchased from the grid today. |
+| `daily_solar_production_kwh` | `statistika.denni.VyrobaFV` | kWh | Total solar energy produced today. |
+| `daily_grid_export_kwh` | `statistika.denni.ProdejEnergie` | kWh | Total energy exported to the grid today. |
 | `inverter_temp_c` | `teplotaStridace` | °C | Internal temperature of the inverter. |
+
+## ⚡ Home Assistant Energy Dashboard Configuration
+
+This integration provides energy sensors that are fully compatible with Home Assistant's Energy Dashboard. To configure:
+
+1. Go to **Settings** → **Dashboards** → **Energy**
+2. Configure each section:
+
+### Solar Panels
+- Click **Add Solar Production**
+- Select: `sensor.benekov_fve_system_daily_solar_production`
+
+### Grid Consumption
+- Click **Add Consumption**
+- Select: `sensor.benekov_fve_system_daily_grid_purchase`
+
+### Return to Grid
+- Click **Add Return to Grid**
+- Select: `sensor.benekov_fve_system_daily_grid_export`
+
+### Battery Systems (Optional)
+- **Energy going in to the battery**: `sensor.benekov_fve_system_daily_battery_charge`
+- **Energy coming out of the battery**: `sensor.benekov_fve_system_daily_battery_discharge`
+
+After configuration, the Energy Dashboard will display your solar production, grid consumption, and energy flows. Historical data will accumulate over time for long-term analysis.
+
+## 🔧 Troubleshooting
+
+### Solar Production Not Showing in Energy Dashboard
+
+If the solar production sensor is not appearing in Home Assistant's Energy Dashboard:
+
+1. **Check sensor state**: Go to **Developer Tools** → **States** and search for `sensor.benekov_fve_system_daily_solar_production`
+2. **Verify sensor attributes**: Ensure it has:
+   - `device_class: energy`
+   - `state_class: total_increasing`
+   - `unit_of_measurement: kWh`
+3. **Check logs**: Enable debug logging by adding to `configuration.yaml`:
+   ```yaml
+   logger:
+     default: info
+     logs:
+       custom_components.benekov_fve: debug
+   ```
+4. **Restart Home Assistant**: After enabling debug logging, restart and check the logs for messages about API response structure
+5. **Verify API field name**: Check the debug logs for `statistika.denni keys:` to confirm the API provides `VyrobaFV` field
+
+If the API uses a different field name for solar production, please open an issue on GitHub with the log output.

@@ -222,6 +222,13 @@ class BenekovFVEAPI:
         if not isinstance(data, dict):
             _LOGGER.error("API returned non-dict JSON payload: %s", repr(data))
             return {"error": "INVALID_PAYLOAD", "payload": data}
+        
+        # DEBUG: Log full API response to help identify solar energy fields
+        _LOGGER.debug("Full API response data keys: %s", list(data.keys()))
+        if "statistika" in data and isinstance(data["statistika"], dict):
+            _LOGGER.debug("statistika keys: %s", list(data["statistika"].keys()))
+            if "denni" in data["statistika"]:
+                _LOGGER.debug("statistika.denni keys: %s", list(data["statistika"]["denni"].keys()))
 
         try:
             # Store unique ID (uid) for the device
@@ -254,6 +261,8 @@ class BenekovFVEAPI:
                 "daily_purchase_kwh": self._safe_get(data, ["statistika", "denni", "NakupEnergie"], 0.0),
                 "daily_charge_kwh": self._safe_get(data, ["statistika", "denni", "NabitiBaterie"], 0.0),
                 "daily_discharge_kwh": self._safe_get(data, ["statistika", "denni", "VybitiBaterie"], 0.0),
+                "daily_solar_production_kwh": self._safe_get(data, ["statistika", "denni", "VyrobaFV"], 0.0),
+                "daily_grid_export_kwh": self._safe_get(data, ["statistika", "denni", "ProdejEnergie"], 0.0),
 
                 # Solar Panel production
                 "fpv_power_total_w": self._safe_get(data, ["vykonFV"], 0),
@@ -343,6 +352,8 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry, asyn
         BenekovFVESensor(entry_id, coordinator, api, "daily_purchase_kwh", "Daily Grid Purchase", UNIT_KWH, DEVICE_CLASS_ENERGY, SensorStateClass.TOTAL_INCREASING, state_attr_key="last_update"),
         BenekovFVESensor(entry_id, coordinator, api, "daily_charge_kwh", "Daily Battery Charge", UNIT_KWH, DEVICE_CLASS_ENERGY, SensorStateClass.TOTAL_INCREASING),
         BenekovFVESensor(entry_id, coordinator, api, "daily_discharge_kwh", "Daily Battery Discharge", UNIT_KWH, DEVICE_CLASS_ENERGY, SensorStateClass.TOTAL_INCREASING),
+        BenekovFVESensor(entry_id, coordinator, api, "daily_solar_production_kwh", "Daily Solar Production", UNIT_KWH, DEVICE_CLASS_ENERGY, SensorStateClass.TOTAL_INCREASING),
+        BenekovFVESensor(entry_id, coordinator, api, "daily_grid_export_kwh", "Daily Grid Export", UNIT_KWH, DEVICE_CLASS_ENERGY, SensorStateClass.TOTAL_INCREASING),
         
         # Temperature sensor
         BenekovFVESensor(entry_id, coordinator, api, "inverter_temp_c", "Inverter Temperature", UNIT_TEMP_C, DEVICE_CLASS_TEMPERATURE, SensorStateClass.MEASUREMENT),
