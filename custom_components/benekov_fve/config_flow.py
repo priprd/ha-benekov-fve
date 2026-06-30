@@ -43,7 +43,7 @@ class BenekovFVEConfigFlow(config_entries.ConfigFlow):
             url = user_input[CONF_URL]
             c_monitor = user_input[CONF_USERNAME]
             t_monitor = user_input[CONF_PASSWORD]
-            scan_interval_s = user_input.get("scan_interval", 5)
+            scan_interval_s = user_input.get("scan_interval", 10)
 
             # Validate URL value here (so the UI schema stays simple).
             try:

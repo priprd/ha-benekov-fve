@@ -5,7 +5,7 @@ import socket
 import ssl
 from urllib.parse import urlparse, urlencode
 
-from homeassistant.components.sensor import SensorEntity, SensorStateClass
+from homeassistant.components.sensor import SensorDeviceClass, SensorEntity, SensorStateClass
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 from homeassistant.config_entries import ConfigEntry
@@ -31,18 +31,19 @@ UNIT_WATT = getattr(UnitOfPower, "WATT", "W")
 UNIT_KWH = getattr(UnitOfEnergy, "KILO_WATT_HOUR", "kWh")
 UNIT_TEMP_C = getattr(UnitOfTemperature, "CELSIUS", "°C")
 
-DEVICE_CLASS_POWER = getattr(ha_const, "SensorDeviceClass.POWER", "power")
-DEVICE_CLASS_ENERGY = getattr(ha_const, "SensorDeviceClass.ENERGY", "energy")
-DEVICE_CLASS_TEMPERATURE = getattr(ha_const, "SensorDeviceClass.TEMPERATURE", "temperature")
-DEVICE_CLASS_VOLTAGE = getattr(ha_const, "SensorDeviceClass.VOLTAGE", "voltage")
-DEVICE_CLASS_CURRENT = getattr(ha_const, "SensorDeviceClass.CURRENT", "current")
-DEVICE_CLASS_BATTERY = getattr(ha_const, "SensorDeviceClass.BATTERY", "battery")
+# Device classes - use the proper enum from homeassistant.components.sensor
+DEVICE_CLASS_POWER = SensorDeviceClass.POWER
+DEVICE_CLASS_ENERGY = SensorDeviceClass.ENERGY
+DEVICE_CLASS_TEMPERATURE = SensorDeviceClass.TEMPERATURE
+DEVICE_CLASS_VOLTAGE = SensorDeviceClass.VOLTAGE
+DEVICE_CLASS_CURRENT = SensorDeviceClass.CURRENT
+DEVICE_CLASS_BATTERY = SensorDeviceClass.BATTERY
 
 # Logger
 _LOGGER = logging.getLogger(__name__)
 
-# Default to 5 seconds as requested
-DEFAULT_SCAN_INTERVAL = timedelta(seconds=5)
+# Default to 10 seconds as a polite poll interval for the cloud API
+DEFAULT_SCAN_INTERVAL = timedelta(seconds=10)
 
 class BenekovFVEAPI:
     """Handles communication with the external Benekov FVE API."""
@@ -186,7 +187,7 @@ class BenekovFVEAPI:
         except Exception as e:
             _LOGGER.exception("An unexpected error occurred during API call: %s", e)
             raise UpdateFailed(f"Unexpected error: {e}") from e
-            
+
     def _safe_get(self, d, keys, default=None):
         """Accesses nested dictionary keys safely."""
         # Be defensive: allow `keys` to be a single key (str) or iterable.
@@ -222,7 +223,7 @@ class BenekovFVEAPI:
         if not isinstance(data, dict):
             _LOGGER.error("API returned non-dict JSON payload: %s", repr(data))
             return {"error": "INVALID_PAYLOAD", "payload": data}
-        
+
         # DEBUG: Log full API response to help identify solar energy fields
         _LOGGER.debug("Full API response data keys: %s", list(data.keys()))
         if "statistika" in data and isinstance(data["statistika"], dict):
@@ -261,7 +262,7 @@ class BenekovFVEAPI:
                 "daily_purchase_kwh": self._safe_get(data, ["statistika", "denni", "NakupEnergie"], 0.0),
                 "daily_charge_kwh": self._safe_get(data, ["statistika", "denni", "NabitiBaterie"], 0.0),
                 "daily_discharge_kwh": self._safe_get(data, ["statistika", "denni", "VybitiBaterie"], 0.0),
-                "daily_solar_production_kwh": self._safe_get(data, ["statistika", "denni", "VyrobaFV"], 0.0),
+                "daily_solar_production_kwh": self._safe_get(data, ["statistika", "denni", "VykonPanelu"], 0.0),
                 "daily_grid_export_kwh": self._safe_get(data, ["statistika", "denni", "ProdejEnergie"], 0.0),
 
                 # Solar Panel production
@@ -292,15 +293,15 @@ class BenekovFVEAPI:
 
 async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry, async_add_entities):
     """Set up the sensor platform from a config entry."""
-    
+
     url = config_entry.data[CONF_URL]
     c_monitor = config_entry.data[CONF_USERNAME]
     t_monitor = config_entry.data[CONF_PASSWORD]
     scan_interval_s = config_entry.data.get("scan_interval", DEFAULT_SCAN_INTERVAL.seconds)
-    
+
     # Renamed API class
     api = BenekovFVEAPI(hass, url, c_monitor, t_monitor)
-    
+
     async def _async_update_data():
         """Wrapper to run the blocking `api.get_data` in the executor."""
         result = await hass.async_add_executor_job(api.get_data)
@@ -338,39 +339,39 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry, asyn
     entities = [
         # Power sensors - use MEASUREMENT state class for instantaneous power readings
         BenekovFVESensor(entry_id, coordinator, api, "total_consumption_w", "Total Consumption", UNIT_WATT, DEVICE_CLASS_POWER, SensorStateClass.MEASUREMENT),
-        BenekovFVESensor(entry_id, coordinator, api, "grid_power_w", "Grid Power", UNIT_WATT, DEVICE_CLASS_POWER, SensorStateClass.MEASUREMENT, state_attr_key="measurement"),
+        BenekovFVESensor(entry_id, coordinator, api, "grid_power_w", "Grid Power", UNIT_WATT, DEVICE_CLASS_POWER, SensorStateClass.MEASUREMENT),
         BenekovFVESensor(entry_id, coordinator, api, "battery_power_w", "Battery Power", UNIT_WATT, DEVICE_CLASS_POWER, SensorStateClass.MEASUREMENT),
         BenekovFVESensor(entry_id, coordinator, api, "inverter_output_w", "Inverter Output", UNIT_WATT, DEVICE_CLASS_POWER, SensorStateClass.MEASUREMENT),
-        
+
         # Battery status sensors
         BenekovFVESensor(entry_id, coordinator, api, "battery_soc_percent", "Battery SOC", PERCENTAGE, DEVICE_CLASS_BATTERY, SensorStateClass.MEASUREMENT),
         BenekovFVESensor(entry_id, coordinator, api, "battery_voltage_v", "Battery Voltage", UNIT_VOLT, DEVICE_CLASS_VOLTAGE, SensorStateClass.MEASUREMENT),
         BenekovFVESensor(entry_id, coordinator, api, "battery_current_a", "Battery Current", UNIT_AMPERE, DEVICE_CLASS_CURRENT, SensorStateClass.MEASUREMENT),
         BenekovFVESensor(entry_id, coordinator, api, "battery_temp_c", "Battery Temperature", UNIT_TEMP_C, DEVICE_CLASS_TEMPERATURE, SensorStateClass.MEASUREMENT),
-        
+
         # Energy sensors - use TOTAL_INCREASING for cumulative daily counters
         BenekovFVESensor(entry_id, coordinator, api, "daily_purchase_kwh", "Daily Grid Purchase", UNIT_KWH, DEVICE_CLASS_ENERGY, SensorStateClass.TOTAL_INCREASING, state_attr_key="last_update"),
         BenekovFVESensor(entry_id, coordinator, api, "daily_charge_kwh", "Daily Battery Charge", UNIT_KWH, DEVICE_CLASS_ENERGY, SensorStateClass.TOTAL_INCREASING),
         BenekovFVESensor(entry_id, coordinator, api, "daily_discharge_kwh", "Daily Battery Discharge", UNIT_KWH, DEVICE_CLASS_ENERGY, SensorStateClass.TOTAL_INCREASING),
         BenekovFVESensor(entry_id, coordinator, api, "daily_solar_production_kwh", "Daily Solar Production", UNIT_KWH, DEVICE_CLASS_ENERGY, SensorStateClass.TOTAL_INCREASING),
         BenekovFVESensor(entry_id, coordinator, api, "daily_grid_export_kwh", "Daily Grid Export", UNIT_KWH, DEVICE_CLASS_ENERGY, SensorStateClass.TOTAL_INCREASING),
-        
+
         # Temperature sensor
         BenekovFVESensor(entry_id, coordinator, api, "inverter_temp_c", "Inverter Temperature", UNIT_TEMP_C, DEVICE_CLASS_TEMPERATURE, SensorStateClass.MEASUREMENT),
-        
+
         # Solar panel power sensors
         BenekovFVESensor(entry_id, coordinator, api, "fpv_power_total_w", "Total Solar Panels Power", UNIT_WATT, DEVICE_CLASS_POWER, SensorStateClass.MEASUREMENT),
         BenekovFVESensor(entry_id, coordinator, api, "fpv_power_string_1_w", "Solar Panels Power String 1", UNIT_WATT, DEVICE_CLASS_POWER, SensorStateClass.MEASUREMENT),
         BenekovFVESensor(entry_id, coordinator, api, "fpv_power_string_2_w", "Solar Panels Power String 2", UNIT_WATT, DEVICE_CLASS_POWER, SensorStateClass.MEASUREMENT),
         BenekovFVESensor(entry_id, coordinator, api, "fpv_power_string_3_w", "Solar Panels Power String 3", UNIT_WATT, DEVICE_CLASS_POWER, SensorStateClass.MEASUREMENT),
         BenekovFVESensor(entry_id, coordinator, api, "fpv_power_string_4_w", "Solar Panels Power String 4", UNIT_WATT, DEVICE_CLASS_POWER, SensorStateClass.MEASUREMENT),
-        
+
         # Solar panel voltage sensors
         BenekovFVESensor(entry_id, coordinator, api, "fpv_voltage_string1_v", "Solar Panels Voltage String 1", UNIT_VOLT, DEVICE_CLASS_VOLTAGE, SensorStateClass.MEASUREMENT),
         BenekovFVESensor(entry_id, coordinator, api, "fpv_voltage_string2_v", "Solar Panels Voltage String 2", UNIT_VOLT, DEVICE_CLASS_VOLTAGE, SensorStateClass.MEASUREMENT),
         BenekovFVESensor(entry_id, coordinator, api, "fpv_voltage_string3_v", "Solar Panels Voltage String 3", UNIT_VOLT, DEVICE_CLASS_VOLTAGE, SensorStateClass.MEASUREMENT),
         BenekovFVESensor(entry_id, coordinator, api, "fpv_voltage_string4_v", "Solar Panels Voltage String 4", UNIT_VOLT, DEVICE_CLASS_VOLTAGE, SensorStateClass.MEASUREMENT),
-        
+
         # Diagnostic / status sensor
         BenekovFVESensor(entry_id, coordinator, api, "wifi_percent", "WiFi Signal", PERCENTAGE, None, SensorStateClass.MEASUREMENT),
     ]
