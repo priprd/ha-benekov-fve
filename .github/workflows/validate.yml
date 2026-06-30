@@ -19,6 +19,9 @@ jobs:
         uses: hacs/action@main
         with:
           category: integration
+          # Skip the brand asset check until icon/logo is published in
+          # home-assistant/brands. Remove this once that PR is merged.
+          ignore: brands
 
   hassfest:
     name: Hassfest
